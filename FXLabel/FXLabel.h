@@ -92,6 +92,10 @@
 @property (nonatomic, copy) NSDictionary *kerningTable;
 @property (nonatomic) BOOL allowOrphans;
 
+@property (nonatomic) CGFloat outlineWidth;
+@property (nonatomic, strong) UIColor *outlineColor;
+
+
 - (void)setUp;
 
 @end

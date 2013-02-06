@@ -491,6 +491,8 @@
 @property (nonatomic, assign) NSUInteger minSamples;
 @property (nonatomic, assign) NSUInteger maxSamples;
 
+@property (nonatomic, strong) NSArray* lines;
+
 @end
 
 
@@ -622,6 +624,24 @@
     }
 }
 
+- (void)setOutlineWidth:(CGFloat)width
+{
+    if (_outlineWidth != width)
+    {
+        _outlineWidth = width;
+        [self setNeedsDisplay];
+    }
+}
+
+- (void)setOutlineColor:(UIColor *)color
+{
+    if (_outlineColor != color)
+    {
+        _outlineColor = color;
+        [self setNeedsDisplay];
+    }
+}
+
 - (void)setOversampling:(NSUInteger)samples
 {
     samples = MIN(_maxSamples, MAX(_minSamples, samples));
@@ -639,6 +659,13 @@
         _textInsets = insets;
         [self setNeedsDisplay];
     }
+}
+
+- (void)setText:(NSString *)text
+{
+    [super setText:text];
+    
+    _lines = [self.text componentsSeparatedByString:@"\n"];
 }
 
 - (void)setLineSpacing:(CGFloat)lineSpacing
@@ -839,13 +866,68 @@
     //get dimensions
     CGFloat fontSize = 0.0f;
     CGRect textRect = contentRect;
-    textRect.size = [self FXLabel_sizeThatFits:contentRect.size actualFontSize:&fontSize];
+//    textRect.size = [self FXLabel_sizeThatFits:contentRect.size actualFontSize:&fontSize];
+    
+    //get label size
+//    CGRect textRect = contentRect;
+//    CGFloat fontSize = self.font.pointSize;
+    int lineCount = 1;
+    if (self.adjustsFontSizeToFitWidth)
+    {
+        CGSize totalSize = {0, 0};
+        if (_lines)
+        {
+            lineCount = [_lines count];
+            CGFloat minFontSize = 99.0f;
+            for (NSString* line in _lines) {
+                CGSize lineSize = [line sizeWithFont:self.font
+                                            minFontSize:self.minimumFontSize
+                                         actualFontSize:&fontSize
+                                               forWidth:rect.size.width
+                                          lineBreakMode:self.lineBreakMode];
+                totalSize.width = MAX(totalSize.width, lineSize.width);
+
+                minFontSize = MIN(fontSize, minFontSize);
+            }
+            fontSize = minFontSize;
+            UIFont* fnt = [self.font fontWithSize:fontSize];
+            totalSize.height += lineCount * fnt.lineHeight;
+
+        }
+        textRect.size = totalSize;
+        
+        if (textRect.size.height > rect.size.height)
+        {
+            float k = rect.size.height / textRect.size.height;
+            textRect.size.height *= k;
+            textRect.size.width *= k;
+            fontSize *= k;
+        }
+        
+        if (textRect.size.height == 0.0f)
+        {
+            textRect.size = [self.text sizeWithFont:self.font
+                                        minFontSize:self.minimumFontSize
+                                     actualFontSize:&fontSize
+                                           forWidth:rect.size.width
+                                      lineBreakMode:self.lineBreakMode];
+        }
+        NSLog(@"frame=%@, rect=%@, textRect=%@, font size=%f", NSStringFromCGRect(self.frame), NSStringFromCGRect(rect), NSStringFromCGRect(textRect), fontSize);
+    }
+    else
+    {
+        textRect.size = [self.text sizeWithFont:self.font
+                                       forWidth:rect.size.width
+                                  lineBreakMode:self.lineBreakMode];
+    }
+    
     
     //set font
     UIFont *font = [self.font fontWithSize:fontSize];
     
     //adjust for minimum height
-    textRect.size.height = MAX(textRect.size.height, font.lineHeight);
+    textRect.size.height = MAX(textRect.size.height, lineCount * font.lineHeight);
+    NSLog(@"after adjusting textRect=%@", NSStringFromCGRect(textRect));
     
     //set color
     UIColor *highlightedColor = self.highlightedTextColor ?: self.textColor;
@@ -935,6 +1017,19 @@
         //just draw the text
         [textColor setFill];
         [self FXLabel_drawTextInRect:textRect withFont:font];
+    }
+    
+    if (_outlineColor && _outlineWidth > 0) {
+        CGContextSaveGState(context);
+        CGContextSetLineWidth(context, _outlineWidth);
+        CGContextSetLineJoin(context, kCGLineJoinRound);
+        
+        CGContextSetTextDrawingMode(context, kCGTextStroke);
+        [_outlineColor setStroke];
+        [_outlineColor setFill];
+        [self.text drawInRect:textRect withFont:font lineBreakMode:self.lineBreakMode alignment:self.textAlignment];
+        
+        CGContextRestoreGState(context);
     }
     
     if (needsMask)
