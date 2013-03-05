@@ -912,7 +912,7 @@
                                            forWidth:rect.size.width
                                       lineBreakMode:self.lineBreakMode];
         }
-        NSLog(@"frame=%@, rect=%@, textRect=%@, font size=%f", NSStringFromCGRect(self.frame), NSStringFromCGRect(rect), NSStringFromCGRect(textRect), fontSize);
+//        NSLog(@"frame=%@, rect=%@, textRect=%@, font size=%f", NSStringFromCGRect(self.frame), NSStringFromCGRect(rect), NSStringFromCGRect(textRect), fontSize);
     }
     else
     {
@@ -927,7 +927,7 @@
     
     //adjust for minimum height
     textRect.size.height = MAX(textRect.size.height, lineCount * font.lineHeight);
-    NSLog(@"after adjusting textRect=%@", NSStringFromCGRect(textRect));
+//    NSLog(@"after adjusting textRect=%@", NSStringFromCGRect(textRect));
     
     //set color
     UIColor *highlightedColor = self.highlightedTextColor ?: self.textColor;
